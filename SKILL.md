@@ -46,16 +46,21 @@ groups:
         tag-usage: "当前进行的项目"
         children:
           - tag-name: "OmniTag-20260415"
+            tag-usage: "OmniTag 标签系统开发项目"
       - tag-name: Area
         tag-usage: "长期维护的领域"
         children:
           - tag-name: "Agent系统"
+            tag-usage: "智能体系统设计与实现"
           - tag-name: "云原生"
+            tag-usage: "Kubernetes/Docker 等云原生技术"
       - tag-name: Resource
         tag-usage: "感兴趣的资源"
         children:
           - tag-name: "AI前沿"
+            tag-usage: "人工智能最新动态与研究"
           - tag-name: "编程语言"
+            tag-usage: "Rust/Go/Python 等编程语言学习"
       - tag-name: Archive
         tag-usage: "已归档的内容"
 
@@ -67,12 +72,16 @@ groups:
         tag-usage: "AI Agent全栈"
         children:
           - tag-name: "运行时框架"
+            tag-usage: "Agent 运行环境与调度框架"
           - tag-name: "沙箱"
+            tag-usage: "代码执行沙箱与安全隔离"
       - tag-name: LLM
         tag-usage: "大模型技术"
         children:
           - tag-name: "强化学习"
+            tag-usage: "RLHF/RLAIF 等强化学习技术"
           - tag-name: "Transformer"
+            tag-usage: "Transformer 架构与注意力机制"
 
   - tag-name: Type
     tag-usage: "笔记类型（必选，描述笔记形态）"
@@ -118,7 +127,7 @@ groups:
     *   **纯文本**: 直接进行语义分析。
     *   **URL 链接**: **必须**先调用配套脚本提取正文。
         > **命令**: `python scripts/url_to_markdown.py "<URL>"`
-        > **注意**: 微信公众号文章 (`mp.weixin.qq.com`) 需使用 `wechat-article-to-markdown` 技能。
+        > **注意**: 微信公众号文章 (`mp.weixin.qq.com`) 需使用 `wechat-article-to-markdown` 技能。若当前环境未安装该技能，请务必先调用 `find-skills` 工具搜索并安装（关键词：`wechat-article-to-markdown`），安装完成后再解析文章内容。
 2.  **配置加载 (Context Loading)**:
     *   读取 `~/.omnitag/omni-tags.yaml`，构建当前的标签树。
 3.  **语义匹配与生成 (Tagging)**:
