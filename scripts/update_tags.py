@@ -32,7 +32,7 @@ def save_config(path, data):
         print(f"Error saving config: {e}", file=sys.stderr)
 
 def parse_tag(tag_str):
-    """Parse a tag string like '#PARA/Project/MyProj' into components."""
+    """Parse a tag string like '#Topic/Agent/LLM' into components."""
     tag_str = tag_str.strip()
     if not tag_str.startswith('#'):
         return None
@@ -41,25 +41,21 @@ def parse_tag(tag_str):
     if len(parts) < 2:
         return None
     
-    group_name = parts[0]
-    item_name = parts[1]
-    child_name = parts[2] if len(parts) > 2 else None
-    
-    return group_name, item_name, child_name
+    return parts
 
 def update_tags(config, new_tags):
-    """Update config with new tags."""
+    """Update config with new tags, supporting unlimited nesting via 'items'."""
     if 'groups' not in config:
         config['groups'] = []
     
     updated = False
     
     for tag in new_tags:
-        parsed = parse_tag(tag)
-        if not parsed:
+        parts = parse_tag(tag)
+        if not parts:
             continue
             
-        group_name, item_name, child_name = parsed
+        group_name = parts[0]
         
         # 1. Find or create Group
         group = next((g for g in config['groups'] if g.get('tag-name') == group_name), None)
@@ -68,32 +64,21 @@ def update_tags(config, new_tags):
             config['groups'].append(group)
             updated = True
             
-        # 2. Find or create Item
-        if 'items' not in group:
-            group['items'] = []
+        # 2. Iteratively find or create items for nested tags
+        current_level = group
+        for i in range(1, len(parts)):
+            part_name = parts[i]
             
-        item = next((i for i in group['items'] if i.get('tag-name') == item_name), None)
-        if not item:
-            item = {'tag-name': item_name}
-            group['items'].append(item)
-            updated = True
-            
-        # 3. Find or create Child (if applicable)
-        if child_name:
-            if 'children' not in item:
-                item['children'] = []
+            if 'items' not in current_level:
+                current_level['items'] = []
                 
-            child = next((c for c in item['children'] if isinstance(c, dict) and c.get('tag-name') == child_name), None)
-            
-            # Also check if children are simple strings (legacy support, though new format uses dicts)
-            # But based on omni-tags.yaml structure, children seem to be dicts with tag-name
-            
-            if not child:
-                # Check if it exists as a string in children list (just in case mixed format)
-                exists_as_str = child_name in [c for c in item['children'] if isinstance(c, str)]
-                if not exists_as_str:
-                    item['children'].append({'tag-name': child_name})
-                    updated = True
+            next_level = next((item for item in current_level['items'] if item.get('tag-name') == part_name), None)
+            if not next_level:
+                next_level = {'tag-name': part_name}
+                current_level['items'].append(next_level)
+                updated = True
+                
+            current_level = next_level
     
     return updated
 

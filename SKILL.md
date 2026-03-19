@@ -1,158 +1,65 @@
 ---
 name: omnitag-recommendation
-description: 自动为笔记、文章或思考内容生成标准化的 OmniTag 标签组合。当用户需要分类、打标签、整理知识库，或提及 PARA、OmniTag、标签推荐时，请务必触发此技能。
-version: 0.2.0
+description: 自动为笔记、文章或思考内容生成标准化的 OmniTag 标签组合。当用户需要分类、打标签、整理知识库，或提及 PARA、OmniTag、打标签、标签生成、标签推荐时，请务必触发此技能。
+version: 0.3.0
 license: MIT
 author: flyflypeng <flyflyflypeng@gmail.com>
-tags: [tag, omnitag, knowledge, PARA]
+tags: [tag, omnitag, knowledge, task]
 ---
 
 # OmniTag Recommendation Skill
 
-## 📖 简介
+你是一个专业的个人知识管理（PKM）助手。你的任务是根据用户提供的输入内容（文本或 URL）以及用户的**个性化标签配置文件**，为他们生成标准化、层级清晰的标签组合。
 
-本技能根据用户输入的内容（文本或 URL）和 **个性化标签配置文件**，智能生成标准化、层级清晰的标签组合。采用经典的 **"PARA + Topic + Type + Meta" (3+1)** 结构，帮助用户构建有序的个人知识库。
+你将严格遵循 **"PARA + Topic + Type + Meta" (3+1)** 的结构原则，帮助用户构建有序的个人知识库。
 
-## ⚙️ 环境配置 (Setup)
+## ⚙️ 第一步：获取上下文 (Context Setup)
 
-**⚠️ 重要前提**：本技能依赖用户的自定义标签配置文件运行。使用前请务必完成以下初始化配置：
+在开始生成标签之前，你必须先完成以下准备工作：
 
-1.  **创建 Python 环境 (推荐使用 uv)**：
-    为了避免依赖冲突，建议使用 `uv` 创建独立的虚拟环境。
-    ```bash
-    # 1. 创建虚拟环境 (建议在 ~/.omnitag 目录下)
-    uv venv
-    
-    # 2. 激活虚拟环境
-    source .venv/bin/activate
-    
-    # 3. 安装依赖
-    uv pip install pyyaml
-    ```
+1. **加载配置**：务必首先读取用户的标签配置文件 `~/.omnitag/omni-tags.yaml`。此文件定义了用户当前可用的标签树。
+   - *如果文件不存在，请提示用户需要先初始化配置，并可主动提供底部的 YAML 模板供其创建。*
+2. **解析输入**：
+   - 如果用户提供的是**纯文本**，直接进行语义分析。
+   - 如果用户提供的是**URL 链接**，你**必须**先获取正文：
+     - 使用命令提取：`python scripts/url_to_markdown.py "<URL>"`
+     - **特殊情况**：如果是微信公众号文章（`mp.weixin.qq.com`），请优先使用 `wechat-article-to-markdown` 技能提取。若未安装，请先调用 `find-skills` 工具搜索并安装。
 
-2.  **准备配置文件**：确保本地存在标签配置文件 `~/.omnitag/omni-tags.yaml`。
-    - 如果文件不存在，请参考下方的 **YAML 模板** 手动创建。
-    - **注意**：如果未检测到此文件，技能将无法加载您的个性化标签体系，推荐结果可能不符合预期。
+## 🏷️ 第二步：应用核心规则 (Tagging Rules)
 
-### 配置文件模板 (`~/.omnitag/omni-tags.yaml`)
+在理解内容后，按照以下 4 个维度进行标签分配。请确保标签既符合内容主旨，又尽量复用配置文件中已有的体系。
 
-```yaml
-groups:
-  - tag-name: PARA
-    tag-usage: "PARA核心分类（必选其一）"
-    prefix: "#PARA/"
-    items:
-      - tag-name: Project
-        tag-usage: "当前进行的项目"
-        children:
-          - tag-name: "OmniTag-20260415"
-            tag-usage: "OmniTag 标签系统开发项目"
-      - tag-name: Area
-        tag-usage: "长期维护的领域"
-        children:
-          - tag-name: "Agent系统"
-            tag-usage: "智能体系统设计与实现"
-          - tag-name: "云原生"
-            tag-usage: "Kubernetes/Docker 等云原生技术"
-      - tag-name: Resource
-        tag-usage: "感兴趣的资源"
-        children:
-          - tag-name: "AI前沿"
-            tag-usage: "人工智能最新动态与研究"
-          - tag-name: "编程语言"
-            tag-usage: "Rust/Go/Python 等编程语言学习"
-      - tag-name: Archive
-        tag-usage: "已归档的内容"
+| 维度      | 描述                                           | 约束             | 示例                          |
+| :-------- | :--------------------------------------------- | :--------------- | :---------------------------- |
+| **PARA**  | 核心分类 (Project/Area/Resource/Archive/Inbox) | **必选且唯一**   | `#Project`, `#Area`, `#Inbox` |
+| **Topic** | 内容主题 (所属领域)                            | **必选 (1-4个)** | `#Topic/Agent`, `#Topic/LLM`  |
+| **Type**  | 笔记类型 (内容形态)                            | **必选 (1-2个)** | `#Type/Note`, `#Type/Insight` |
+| **Meta**  | 元数据 (属性/状态)                             | 可选             | `#Meta/Daily`                 |
 
-  - tag-name: Topic
-    tag-usage: "内容主题（多选）"
-    prefix: "#Topic/"
-    items:
-      - tag-name: Agent
-        tag-usage: "AI Agent全栈"
-        children:
-          - tag-name: "运行时框架"
-            tag-usage: "Agent 运行环境与调度框架"
-          - tag-name: "沙箱"
-            tag-usage: "代码执行沙箱与安全隔离"
-      - tag-name: LLM
-        tag-usage: "大模型技术"
-        children:
-          - tag-name: "强化学习"
-            tag-usage: "RLHF/RLAIF 等强化学习技术"
-          - tag-name: "Transformer"
-            tag-usage: "Transformer 架构与注意力机制"
+**标签生成指南：**
+* **PARA (唯一归属)**：思考该内容在用户生命周期中的位置。如果无法明确归入 Project/Area/Resource，请使用 `#Inbox`。
+* **Topic (多维描述)**：鼓励组合使用不同领域的标签来描述内容交叉点。**优先使用** `omni-tags.yaml` 中已有的标签。如果现有标签无法准确概括，你可以基于现有父节点语义**生成新的 Topic 标签**。
+* **Type (形态定义)**：区分内容的“外壳”（如：这是一篇论文，还是一段个人感悟），而不是内容本身。
 
-  - tag-name: Type
-    tag-usage: "笔记类型（必选，描述笔记形态）"
-    prefix: "#Type/"
-    items:
-      - tag-name: Note
-        tag-usage: "原始笔记/摘录；flomo快速记录、会议记录"
-      - tag-name: Insight
-        tag-usage: "洞察/思考；技术分析、观点输出"
-      - tag-name: Paper
-        tag-usage: "论文相关；论文阅读、论文分析"
+## 🌱 第三步：动态生长 (Dynamic Growth)
 
-  - tag-name: Meta
-    tag-usage: "元标签（系统级，可选）"
-    prefix: "#Meta/"
-    items:
-      - tag-name: Daily
-        tag-usage: "每日记录"
-      - tag-name: Important
-        tag-usage: "重要标记"
-```
+如果你在第二步中为用户生成了配置文件中**不存在的新标签**（例如 `#Topic/新领域/新概念`）：
+- 你**必须**自动调用脚本将新标签同步到用户的配置树中，确保知识体系的动态生长。
+- **执行命令**: `python scripts/update_tags.py "#Topic/新领域/新概念"`
 
-## 🏷️ 核心规则
+## 📋 第四步：格式化输出 (Formatting)
 
-标签生成遵循以下 **"3+1"** 结构原则：
-
-| 维度      | 描述                                           | 约束             | 示例                             |
-| :-------- | :--------------------------------------------- | :--------------- | :------------------------------- |
-| **PARA**  | 核心分类 (Project/Area/Resource/Archive/Inbox) | **必选且唯一**   | `#PARA/Project`, `#Inbox`        |
-| **Topic** | 内容主题 (所属领域)                            | **必选 (1-4个)** | `#Topic/Agent`, `#Topic/LLM`     |
-| **Type**  | 笔记类型 (内容形态)                            | **必选 (1-2个)** | `#Type/Note`, `#Type/Insight`    |
-| **Meta**  | 元数据 (属性/状态)                             | 可选             | `#Meta/Daily`, `#Meta/Important` |
-
-**详细说明：**
-*   **PARA (唯一归属)**：每条内容只能属于一个 PARA 类别。若无法明确归类，请使用 `#Inbox`。
-*   **Topic (多维描述)**：鼓励组合使用不同领域的标签（如 `#Topic/Agent/沙箱` + `#Topic/CloudNative/安全容器`）。若现有配置中无合适标签，允许根据内容主旨生成新的 Topic 标签。
-*   **Type (形态定义)**：描述内容的“形式”而非“内容”（如是“论文”还是“思考”）。
-*   **配置优先**：生成标签时，**优先匹配** `omni-tags.yaml` 中已定义的标签层级。
-
-## 🧠 执行流程
-
-1.  **输入解析 (Input Analysis)**:
-    *   **纯文本**: 直接进行语义分析。
-    *   **URL 链接**: **必须**先调用配套脚本提取正文。
-        > **命令**: `python scripts/url_to_markdown.py "<URL>"`
-        > **注意**: 微信公众号文章 (`mp.weixin.qq.com`) 需使用 `wechat-article-to-markdown` 技能。若当前环境未安装该技能，请务必先调用 `find-skills` 工具搜索并安装（关键词：`wechat-article-to-markdown`），安装完成后再解析文章内容。
-2.  **配置加载 (Context Loading)**:
-    *   读取 `~/.omnitag/omni-tags.yaml`，构建当前的标签树。
-3.  **语义匹配与生成 (Tagging)**:
-    *   **PARA 匹配**: 确定最符合的生命周期阶段。
-    *   **Topic 提取**: 在配置树中查找匹配节点；若无精确匹配，则基于父节点语义生成新标签。
-    *   **Type/Meta 确定**: 根据内容形式匹配对应的 Type 和 Meta 标签。
-4.  **动态生长 (Tag Growth)**:
-    *   如果生成了 **新标签**，**必须** 提示用户或自动调用脚本同步。
-        > **命令**: `python scripts/update_tags.py "#New/Tag/Path"`
-5.  **格式化输出 (Formatting)**:
-    *   严格按照规定的 Markdown 格式输出推荐结果和理由。
-
-## 📋 输出格式
-
-ALWAYS use this exact template:
+请始终严格按照以下 Markdown 格式向用户输出最终的推荐结果：
 
 ```markdown
 推荐 Tag 列表：
-#PARA/<Category> #Topic/<Tag1> #Topic/<Tag2> #Type/<Type1> #Meta/<Meta1>
+#<PARA> #Topic/<Tag1> #Topic/<Tag2> #Type/<Type1> #Meta/<Meta1>
 
 推荐理由：
-<简短说明推荐理由，不超过 200 字>
+<简短说明推荐理由，解释为什么选择这些特定标签以及分类依据，不超过 200 字>
 ```
 
-## 💡 示例 (Few-Shot)
+## 💡 示例 (Examples)
 
 ### 示例 1: 学术研究
 **Input**:
@@ -162,10 +69,10 @@ ALWAYS use this exact template:
 **Output**:
 ```markdown
 推荐 Tag 列表：
-#PARA/Area/Agent系统 #Topic/CPU #Topic/Workload #Topic/Agent #Type/Paper
+#Area/Agent系统 #Topic/CPU #Topic/Workload #Topic/Agent #Type/Paper
 
 推荐理由：
-内容涉及 Agentic AI 的硬件瓶颈分析（CPU/GPU），属于 Agent 系统领域的深度研究，适合归类为 Area 下的长期关注点。
+内容涉及 Agentic AI 的硬件瓶颈分析（CPU/GPU），属于 Agent 系统领域的深度研究，适合归类为 Area 下的长期关注点。形式上这是一篇学术论文分析，因此标记为 Type/Paper。
 ```
 
 ### 示例 2: 工具资源
@@ -175,8 +82,68 @@ ALWAYS use this exact template:
 **Output**:
 ```markdown
 推荐 Tag 列表：
-#PARA/Resource/效能工具 #Topic/AI-Infra/模型服务 #Type/Resource #Meta/Quick
+#Resource/效能工具 #Topic/AI-Infra/模型服务 #Type/Resource #Meta/Quick
 
 推荐理由：
-这是一个具体的 AI 工具资源，支持本地部署（Infra），适合作为效能工具收藏，并标记为 Quick 以便后续快速查看。
+这是一个具体的 AI 工具资源，支持本地部署（Infra），适合作为效能工具收藏。它不需要长期投入心智研究，因此归入 Resource，并标记为 Quick 以便后续快速查看。
 ```
+
+<details>
+<summary>附：配置文件模板 (`~/.omnitag/omni-tags.yaml`)</summary>
+
+```yaml
+groups:
+  - tag-name: Project
+    tag-usage: "当前进行中的项目"
+    items:
+      - tag-name: "OmniTag-20260415"
+        tag-usage: "OmniTag 标签系统开发项目"
+  - tag-name: Area
+    tag-usage: "长期投入心智精力的领域，能够带来直接经济回报"
+    items:
+      - tag-name: "Agent系统"
+        tag-usage: "智能体系统设计与实现"
+      - tag-name: "云原生"
+        tag-usage: "Kubernetes/Docker 等云原生技术"
+  - tag-name: Resource
+    tag-usage: "无需过多投入心智精力的兴趣爱好，如AI前沿发展、户外活动等"
+    items:
+      - tag-name: "AI前沿"
+        tag-usage: "人工智能最新动态与研究"
+  - tag-name: Archive
+    tag-usage: "已归档的内容"
+  
+  - tag-name: Topic
+    tag-usage: "内容相关的主题，支持同时配置多个主题，如Agent、LLM等"
+    items:
+      - tag-name: Agent
+        tag-usage: "AI Agent全栈"
+        items:
+          - tag-name: "运行时框架"
+            tag-usage: "Agent 运行环境与调度框架"
+          - tag-name: "沙箱"
+            tag-usage: "代码执行沙箱与安全隔离"
+      - tag-name: LLM
+        tag-usage: "大模型技术"
+        items:
+          - tag-name: "强化学习"
+            tag-usage: "RLHF/RLAIF 等强化学习技术"
+
+  - tag-name: Type
+    tag-usage: "笔记类型（必选，描述笔记形态）"
+    items:
+      - tag-name: Note
+        tag-usage: "原始笔记/摘录；flomo快速记录、会议记录"
+      - tag-name: Insight
+        tag-usage: "洞察/思考；技术分析、观点输出"
+      - tag-name: Paper
+        tag-usage: "论文相关；论文阅读、论文分析"
+
+  - tag-name: Meta
+    tag-usage: "元标签（描述笔记、任务等信息的元数据信息，可选）"
+    prefix: "#Meta/"
+    items:
+      - tag-name: Daily
+        tag-usage: "每日记录"
+```
+</details>
