@@ -1,7 +1,7 @@
 ---
 name: omnitag-recommendation
-description: 自动为笔记、文章或思考内容生成标准化的 OmniTag 标签组合。当用户需要分类、打标签、整理知识库，或提及 PARA、OmniTag、打标签、标签生成、标签推荐时，请务必触发此技能。
-version: 0.3.0
+description: 自动为笔记、文章或思考内容生成标准化的统一的标签组合。当用户需要生成标签、打标签、整理知识库，或提及OmniTag、标签生成、推荐推荐时，请务必触发此技能。
+version: 0.3.1
 license: MIT
 author: flyflypeng <flyflyflypeng@gmail.com>
 tags: [tag, omnitag, knowledge, task]
@@ -49,15 +49,14 @@ tags: [tag, omnitag, knowledge, task]
 
 ## 📋 第四步：格式化输出 (Formatting)
 
-请始终严格按照以下 Markdown 格式向用户输出最终的推荐结果：
+请始终严格按照以下格式向用户输出最终的推荐结果（说明：最终输出的推荐 Tag 列表和推荐理由则纯文本直接输出，不包含任何 Markdown 格式）：
 
-```markdown
 推荐 Tag 列表：
-#<PARA> #Topic/<Tag1> #Topic/<Tag2> #Type/<Type1> #Meta/<Meta1>
+`#<PARA> #Topic/<Tag1> #Topic/<Tag2> #Type/<Type1> #Meta/<Meta1>`
 
 推荐理由：
 <简短说明推荐理由，解释为什么选择这些特定标签以及分类依据，不超过 200 字>
-```
+
 
 ## 💡 示例 (Examples)
 
@@ -67,26 +66,24 @@ tags: [tag, omnitag, knowledge, task]
 > 关键结论：Agentic AI 工作负载的吞吐量受 CPU 因素（缓存一致性、同步）或 GPU 因素（显存容量）限制。
 
 **Output**:
-```markdown
+
 推荐 Tag 列表：
 #Area/Agent系统 #Topic/CPU #Topic/Workload #Topic/Agent #Type/Paper
 
 推荐理由：
 内容涉及 Agentic AI 的硬件瓶颈分析（CPU/GPU），属于 Agent 系统领域的深度研究，适合归类为 Area 下的长期关注点。形式上这是一篇学术论文分析，因此标记为 Type/Paper。
-```
+
 
 ### 示例 2: 工具资源
 **Input**:
 > Banana-Slides 开源 AI PPT 生成工具。支持调用 Google Nano Banana 模型生成 Slide，支持本地容器化部署。
 
 **Output**:
-```markdown
 推荐 Tag 列表：
 #Resource/效能工具 #Topic/AI-Infra/模型服务 #Type/Resource #Meta/Quick
 
 推荐理由：
 这是一个具体的 AI 工具资源，支持本地部署（Infra），适合作为效能工具收藏。它不需要长期投入心智研究，因此归入 Resource，并标记为 Quick 以便后续快速查看。
-```
 
 <details>
 <summary>附：配置文件模板 (`~/.omnitag/omni-tags.yaml`)</summary>
